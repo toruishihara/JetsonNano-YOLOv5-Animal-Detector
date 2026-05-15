@@ -92,9 +92,12 @@ while True:
 
     if save_frame:
         if cnt % 5 == 0:
-            timestamp = datetime.now().strftime("%m%d_%H%M%S_%f")
-            filename = f"frames/event_{timestamp}.jpg"
-            cv2.imwrite(filename, frame)
+            results.render()
+            img = results.imgs[0]
+            now = datetime.now()
+            ts = now.strftime("%m%d_%H%M%S") + f"_{now.microsecond // 100000}"
+            filename = f"frames/frame_{ts}.jpg"
+            cv2.imwrite(filename, img)
             print("saved:", filename)
 
         cnt += 1
