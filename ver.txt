@@ -1,0 +1,40 @@
+Python: 3.6.9 (default, Mar 10 2023, 16:46:00) 
+[GCC 8.4.0]
+Platform: Linux-4.9.253-tegra-aarch64-with-Ubuntu-18.04-bionic
+Machine: aarch64
+
+--- Python packages ---
+numpy: 1.19.4
+cv2: 4.1.1
+torch: 1.8.0
+torch.cuda.is_available: True
+torch.version.cuda: 10.2
+CUDA device count: 1
+CUDA device name: NVIDIA Tegra X1
+CUDA current device: 0
+cuDNN version: 8201
+cuDNN enabled: True
+torchvision: 0.9.0
+torchvision path: /home/toru/yolov5_env/lib/python3.6/site-packages/torchvision-0.9.0-py3.6-linux-aarch64.egg/torchvision/__init__.py
+
+--- OpenCV build info ---
+GStreamer support:
+True
+
+--- System commands ---
+
+$ nvcc --version
+error: [Errno 2] No such file or directory: 'nvcc': 'nvcc'
+
+$ nvidia-smi
+error: [Errno 2] No such file or directory: 'nvidia-smi': 'nvidia-smi'
+
+$ gst-launch-1.0 --version
+gst-launch-1.0 version 1.14.5
+GStreamer 1.14.5
+https://launchpad.net/distros/ubuntu/+source/gstreamer1.0
+
+
+$ git --version
+git version 2.17.1
+
