@@ -6,75 +6,68 @@ import subprocess
 import time
 import shutil
 
-SAVE_CNT = 5000
+SAVE_CNT = 1000
 LORA_LAST_SENT = 0
 LORA_COOLDOWN_SECONDS = 60
 USB_SAVE_DIR = "/mnt/kioxia"
-USB_SAVE_DIR2 = "/mnt/kioxia1"
+TMP_SAVE_DIR = "/mnt/night"
 LOCAL_SAVE_DIR = "frames"
 IGNORE_CLASSES = {"car", "truck", "bus", "person", "umbrella"}
 LOCAL_LOG_FILE = "/tmp/main.log"
 
+kioxia_exist = False
+tmp_exist = False
+def check_dir():
+    global kioxia_exist
+    global tmp_exist
+
+    kioxia_exist = False
+    tmp_exist = False
+
+    if os.path.isdir(f"{USB_SAVE_DIR}/frames"):
+        kioxia_exist = True
+        print("Kioxia SDCard exist")
+    if os.path.isdir(f"{TMP_SAVE_DIR}/frames"):
+        tmp_exist = True
+        print("tmp SDCard exist")
+
 def copy_main_log_to_usb():
-    usb_dirs = [
-        USB_SAVE_DIR,
-        USB_SAVE_DIR2,
-    ]
-    if not os.path.isfile(LOCAL_LOG_FILE):
-        print("ERROR: local main.log does not exist:", LOCAL_LOG_FILE)
-        return False
-
-    for usb_dir in usb_dirs:
-        if not usb_dir:
-            continue
-        if not os.path.isdir(usb_dir):
-            print("USB dir not found:", usb_dir)
-            continue
-
-        dest_log_file = os.path.join(usb_dir, "main.log")
-
-        try:
-            shutil.copy2(LOCAL_LOG_FILE, dest_log_file)
-            print("Copied main.log to:", dest_log_file)
-            return True
-        except Exception as e:
-            pass
-
-    print("ERROR: failed to copy main.log to both USB_SAVE_DIR and USB_SAVE_DIR2")
-    return False
-
-def send_lora_alert(message):
-    global LORA_LAST_SENT
-
-    now = time.time()
-    if now - LORA_LAST_SENT < LORA_COOLDOWN_SECONDS:
-        return
-
-    cmd = [
-        "/home/toru/meshtastic_env/bin/meshtastic",
-        "--port", "/dev/ttyACM0",
-        "--sendtext", message
-    ]
+    dest_log_file = os.path.join(f"{USB_SAVE_DIR}", "main.log")
 
     try:
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            timeout=20
+        shutil.copy2(LOCAL_LOG_FILE, dest_log_file)
+        print("Copied main.log to:", dest_log_file)
+        return True
+    except Exception as e:
+        pass
+
+    return False
+
+
+def unmount_sdcard():
+    print("unmount")
+    if not os.path.ismount(TMP_SAVE_DIR):
+        print("Already unmounted:", TMP_SAVE_DIR)
+        return True
+
+    try:
+        subprocess.run(
+            ["sync"],
+            check=True
         )
 
-        print("Meshtastic stdout:", result.stdout)
-        print("Meshtastic stderr:", result.stderr)
+        subprocess.run(
+            ["sudo", "umount", TMP_SAVE_DIR],
+            check=True
+        )
 
-        if result.returncode == 0:
-            LORA_LAST_SENT = now
-        else:
-            print("Meshtastic send failed")
+        print("Unmounted safely:", TMP_SAVE_DIR)
+        return True
 
-    except Exception as e:
-        print("Meshtastic error:", e)
+    except subprocess.CalledProcessError as e:
+        print("Unmount failed:", e)
+        return False
+
 
 #main
 os.makedirs("frames", exist_ok=True)
@@ -100,6 +93,7 @@ cnt = 0
 start_lap = time.perf_counter()
 
 while True:
+    # take a frame from camera
     ret, frame = cap.read()
 
     if not ret:
@@ -111,6 +105,7 @@ while True:
     save_frame = False
     if cnt % SAVE_CNT == 0:
         save_frame = True
+        check_dir()
 
     for *box, conf, cls in results.xyxy[0]:
         class_name = model.names[int(cls)]
@@ -129,31 +124,26 @@ while True:
     if save_frame:
         results.render()
         img = results.imgs[0]
-
         now = datetime.now()
         ts = now.strftime("%m%d_%H%M%S") + f"_{now.microsecond // 10000}"
-
-        save_dir1 = f"{USB_SAVE_DIR}/frames"
-        save_dir2 = f"{USB_SAVE_DIR2}/frames"
-        local_dir = f"{LOCAL_SAVE_DIR}/frames"
-
-        # Choose save directory
-        if os.path.isdir(save_dir1):
-            save_dir = save_dir1
-        elif os.path.isdir(save_dir2):
-            save_dir = save_dir2
-        else:
-            save_dir = local_dir
-            os.makedirs(save_dir, exist_ok=True)
-
+        save_dir = f"{USB_SAVE_DIR}/frames"
         filename = f"{save_dir}/frame_{ts}.jpg"
         ok = cv2.imwrite(filename, img)
-
         if ok:
             print("saved:", filename)
         else:
             print("ERROR: failed to save:", filename)
-            send_lora_alert(f"failed to save:{filename}")
+            # send_lora_alert(f"failed to save:{filename}")
+
+        print("tmp_exist:", tmp_exist)
+        if tmp_exist:
+            tmp_dir = f"{TMP_SAVE_DIR}/frames"
+            filename = f"{tmp_dir}/frame_{ts}.jpg"
+            ok = cv2.imwrite(filename, img)
+            if ok:
+                print("saved:", filename)
+            else:
+                print("ERROR: failed to save:", filename)
 
     # Press q to quit
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -169,7 +159,10 @@ while True:
         fps = SAVE_CNT/diff
         print("ts=", ts, " cnt=", cnt, " fps=", fps, flush=True) 
         copy_main_log_to_usb()
-        send_lora_alert(f"{ts} fps={fps}")
+        # send_lora_alert(f"{ts} fps={fps}")
+        if tmp_exist:
+            unmount_sdcard()
+
         start_lap = now
 
 cap.release()
