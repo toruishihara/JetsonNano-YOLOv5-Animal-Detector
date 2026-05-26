@@ -5,8 +5,9 @@ from datetime import datetime
 import subprocess
 import time
 import shutil
+import requests
 
-SAVE_CNT = 1000
+SAVE_CNT = 10000
 LORA_LAST_SENT = 0
 LORA_COOLDOWN_SECONDS = 60
 USB_SAVE_DIR = "/mnt/kioxia"
@@ -14,6 +15,11 @@ TMP_SAVE_DIR = "/mnt/night"
 LOCAL_SAVE_DIR = "frames"
 IGNORE_CLASSES = {"car", "truck", "bus", "person", "umbrella"}
 LOCAL_LOG_FILE = "/tmp/main.log"
+
+FIREBASE_URL = "https://wild-animal-detection-a6fb5-default-rtdb.asia-southeast1.firebasedatabase.app"
+DEVICE_TOKEN = "f6837415369be1230d48726db857dc9bbf4fac01c8052124d2863ddb0bda7e56"
+FIREBASE_LAST_SENT = 0
+FIREBASE_COOLDOWN_SECONDS = 60
 
 kioxia_exist = False
 tmp_exist = False
@@ -69,6 +75,34 @@ def unmount_sdcard():
         return False
 
 
+def send_alert(message):
+    global FIREBASE_LAST_SENT
+    now_sec = time.time()
+    if now_sec - FIREBASE_LAST_SENT < FIREBASE_COOLDOWN_SECONDS:
+        print("Firebase skipped by cooldown")
+        return False
+    data = {
+        "message": message,
+        "time": datetime.now().isoformat(),
+        "device": "jetson-nano",
+        "deviceToken": DEVICE_TOKEN
+    }
+    try:
+        r = requests.post(
+            FIREBASE_URL + "/alerts.json",
+            json=data,
+            timeout=15
+        )
+        print("Firebase:", r.status_code, r.text)
+        if r.status_code == 200:
+            FIREBASE_LAST_SENT = now_sec
+            return True
+        return False
+    except Exception as e:
+        print("Firebase error:", e)
+        return False
+
+
 #main
 os.makedirs("frames", exist_ok=True)
 
@@ -103,7 +137,7 @@ while True:
     results = model(frame, size=320)
 
     save_frame = False
-    if cnt % SAVE_CNT == 0:
+    if cnt % SAVE_CNT == 0 or cnt == 1000:
         save_frame = True
         check_dir()
 
@@ -116,7 +150,7 @@ while True:
 
         print(class_name, confidence)
         if confidence > 0.5:
-            send_lora_alert(class_name)
+            send_alert(class_name)
 
         if confidence > 0.4:
             save_frame = True
@@ -133,9 +167,8 @@ while True:
             print("saved:", filename)
         else:
             print("ERROR: failed to save:", filename)
-            # send_lora_alert(f"failed to save:{filename}")
+            send_alert(f"failed to save:{filename}")
 
-        print("tmp_exist:", tmp_exist)
         if tmp_exist:
             tmp_dir = f"{TMP_SAVE_DIR}/frames"
             filename = f"{tmp_dir}/frame_{ts}.jpg"
@@ -157,9 +190,9 @@ while True:
 
         ts = datetime.now().strftime("%H%M%S")
         fps = SAVE_CNT/diff
-        print("ts=", ts, " cnt=", cnt, " fps=", fps, flush=True) 
+        print("ts={ts} cnt={cnt} fps={fps:.2f}", flush=True) 
         copy_main_log_to_usb()
-        # send_lora_alert(f"{ts} fps={fps}")
+        send_alert(f"{ts} fps={fps:.2f}")
         if tmp_exist:
             unmount_sdcard()
 
