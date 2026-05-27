@@ -6,8 +6,10 @@ import subprocess
 import time
 import shutil
 import requests
+import Jetson.GPIO as GPIO
 
 SAVE_CNT = 10000
+REPORT_CNT = 50000
 LORA_LAST_SENT = 0
 LORA_COOLDOWN_SECONDS = 60
 USB_SAVE_DIR = "/mnt/kioxia"
@@ -23,6 +25,10 @@ FIREBASE_COOLDOWN_SECONDS = 60
 
 kioxia_exist = False
 tmp_exist = False
+
+RELAY1 = 29
+RELAY2 = 31
+
 def check_dir():
     global kioxia_exist
     global tmp_exist
@@ -103,7 +109,21 @@ def send_alert(message):
         return False
 
 
+def every_hour_check():
+    global GPIO
+    now = datetime.now()
+    print("hour changed:", now)
+    if now.hour % 2 == 0:
+        GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
+    else:
+        GPIO.output(RELAY1, GPIO.LOW)    # relay 1 OFF
+
+
 #main
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(RELAY1, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(RELAY2, GPIO.OUT, initial=GPIO.LOW)
+
 os.makedirs("frames", exist_ok=True)
 
 model = torch.hub.load(
@@ -125,8 +145,15 @@ cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
 cnt = 0
 start_lap = time.perf_counter()
+last_checked_hour = None
 
 while True:
+    now = datetime.now()
+    # call a func once every hour
+    if now.minute == 00 and last_checked_hour != now.hour:
+        every_hour_check()
+        last_checked_hour = now.hour
+
     # take a frame from camera
     ret, frame = cap.read()
 
@@ -137,6 +164,7 @@ while True:
     results = model(frame, size=320)
 
     save_frame = False
+
     if cnt % SAVE_CNT == 0 or cnt == 1000:
         save_frame = True
         check_dir()
@@ -158,7 +186,6 @@ while True:
     if save_frame:
         results.render()
         img = results.imgs[0]
-        now = datetime.now()
         ts = now.strftime("%m%d_%H%M%S") + f"_{now.microsecond // 10000}"
         save_dir = f"{USB_SAVE_DIR}/frames"
         filename = f"{save_dir}/frame_{ts}.jpg"
@@ -184,18 +211,20 @@ while True:
 
     # End of loop
     cnt += 1
-    if cnt % SAVE_CNT == 0:
+    if cnt % REPORT_CNT == 0:
         now = time.perf_counter()
         diff = now - start_lap
-
-        ts = datetime.now().strftime("%H%M%S")
-        fps = SAVE_CNT/diff
+        fps = REPORT_CNT/diff
         print("ts={ts} cnt={cnt} fps={fps:.2f}", flush=True) 
-        copy_main_log_to_usb()
         send_alert(f"{ts} fps={fps:.2f}")
+        start_lap = now
+
+    if cnt % SAVE_CNT == 0:
+        now = time.perf_counter()
+        ts = datetime.now().strftime("%H%M%S")
+        copy_main_log_to_usb()
         if tmp_exist:
             unmount_sdcard()
 
-        start_lap = now
-
 cap.release()
+GPIO.cleanup()
