@@ -15,7 +15,7 @@ LORA_COOLDOWN_SECONDS = 60
 USB_SAVE_DIR = "/mnt/kioxia"
 TMP_SAVE_DIR = "/mnt/night"
 LOCAL_SAVE_DIR = "frames"
-IGNORE_CLASSES = {"car", "truck", "bus", "person", "umbrella"}
+IGNORE_CLASSES = {"car", "truck", "bus", "person", "umbrella", "bed"}
 LOCAL_LOG_FILE = "/tmp/main.log"
 
 FIREBASE_URL = "https://wild-animal-detection-a6fb5-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -116,12 +116,12 @@ def every_hour_check():
     if now.hour % 2 == 0:
         GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
     else:
-        GPIO.output(RELAY1, GPIO.LOW)    # relay 1 OFF
+        GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
 
 
 #main
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(RELAY1, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(RELAY1, GPIO.OUT, initial=GPIO.HIGH) # relay 1 always ON
 GPIO.setup(RELAY2, GPIO.OUT, initial=GPIO.LOW)
 
 os.makedirs("frames", exist_ok=True)
