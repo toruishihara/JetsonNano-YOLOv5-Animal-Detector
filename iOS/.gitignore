@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Xcode build output
+build/
+DerivedData/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Usually OK to commit Package.resolved for app projects,
+# but you can ignore it for simple PoC if you want.
+# Package.resolved
+
+# CocoaPods, only if you use CocoaPods
+Pods/
+
+# Carthage, only if used
+Carthage/Build/
+
+# Firebase / Apple secret files
+*firebase-adminsdk*.json
+firebase-service-account.json
+AuthKey_*.p8
+
+# Usually do not commit this to public GitHub
+GoogleService-Info.plist
+
+# Environment files
+.env
+.env.*
+*.local
+
+# Logs
+*.log
+
