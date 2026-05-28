@@ -7,6 +7,9 @@ import time
 import shutil
 import requests
 import Jetson.GPIO as GPIO
+import firebase_admin
+from firebase_admin import credentials, messaging
+from notify import send_push_with_cooldown
 
 SAVE_CNT = 10000
 REPORT_CNT = 50000
@@ -18,16 +21,25 @@ LOCAL_SAVE_DIR = "frames"
 IGNORE_CLASSES = {"car", "truck", "bus", "person", "umbrella", "bed"}
 LOCAL_LOG_FILE = "/tmp/main.log"
 
-FIREBASE_URL = "https://wild-animal-detection-a6fb5-default-rtdb.asia-southeast1.firebasedatabase.app"
-DEVICE_TOKEN = "f6837415369be1230d48726db857dc9bbf4fac01c8052124d2863ddb0bda7e56"
-FIREBASE_LAST_SENT = 0
-FIREBASE_COOLDOWN_SECONDS = 60
-
 kioxia_exist = False
 tmp_exist = False
 
 RELAY1 = 29
 RELAY2 = 31
+
+def send_alert(class_name, conf):
+    send_push_with_cooldown(
+        "Animal Detector",
+        "Animal detected: {}".format(class_name),
+        {
+            "type": "animal_alert",
+            "class": class_name,
+            "confidence": "{:.2f}".format(conf),
+            "source": "jetson"
+        },
+        cooldown_sec=60
+    )
+
 
 def check_dir():
     global kioxia_exist
@@ -78,34 +90,6 @@ def unmount_sdcard():
 
     except subprocess.CalledProcessError as e:
         print("Unmount failed:", e)
-        return False
-
-
-def send_alert(message):
-    global FIREBASE_LAST_SENT
-    now_sec = time.time()
-    if now_sec - FIREBASE_LAST_SENT < FIREBASE_COOLDOWN_SECONDS:
-        print("Firebase skipped by cooldown")
-        return False
-    data = {
-        "message": message,
-        "time": datetime.now().isoformat(),
-        "device": "jetson-nano",
-        "deviceToken": DEVICE_TOKEN
-    }
-    try:
-        r = requests.post(
-            FIREBASE_URL + "/alerts.json",
-            json=data,
-            timeout=15
-        )
-        print("Firebase:", r.status_code, r.text)
-        if r.status_code == 200:
-            FIREBASE_LAST_SENT = now_sec
-            return True
-        return False
-    except Exception as e:
-        print("Firebase error:", e)
         return False
 
 
@@ -177,8 +161,8 @@ while True:
             continue
 
         print(class_name, confidence)
-        if confidence > 0.5:
-            send_alert(class_name)
+        if confidence > 0.4:
+            send_alert(class_name, confidence)
 
         if confidence > 0.4:
             save_frame = True
@@ -194,7 +178,6 @@ while True:
             print("saved:", filename)
         else:
             print("ERROR: failed to save:", filename)
-            send_alert(f"failed to save:{filename}")
 
         if tmp_exist:
             tmp_dir = f"{TMP_SAVE_DIR}/frames"
@@ -216,7 +199,6 @@ while True:
         diff = now - start_lap
         fps = REPORT_CNT/diff
         print("ts={ts} cnt={cnt} fps={fps:.2f}", flush=True) 
-        send_alert(f"{ts} fps={fps:.2f}")
         start_lap = now
 
     if cnt % SAVE_CNT == 0:

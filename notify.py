@@ -96,8 +96,8 @@ def send_push_with_cooldown(title, body, data=None, cooldown_sec=60):
 
     return ok
 
-if __name__ == "__main__":
-    send_push("Animal Detector", "Test push from notify.py", {
-        "type": "test",
-        "source": "jetson"
-    })
+#if __name__ == "__main__":
+#    send_push("Animal Detector", "Test push from notify.py", {
+#        "type": "test",
+#        "source": "jetson"
+#    })
