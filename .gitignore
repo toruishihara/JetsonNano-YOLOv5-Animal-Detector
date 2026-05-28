@@ -1,0 +1,12 @@
+
+# macOS
+.DS_Store
+
+# Xcode user files
+xcuserdata/
+*.xcuserstate
+
+# Firebase secrets
+*firebase-adminsdk*.json
+firebase-service-account.json
+GoogleService-Info.plist
