@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct AnimalDetectorApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     @StateObject private var notificationModel = NotificationModel.shared
 
