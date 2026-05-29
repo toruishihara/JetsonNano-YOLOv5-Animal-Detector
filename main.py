@@ -10,6 +10,8 @@ import Jetson.GPIO as GPIO
 import firebase_admin
 from firebase_admin import credentials, messaging
 from notify import send_push_with_cooldown
+from blink import start_gpio_blink
+
 
 SAVE_CNT = 10000
 REPORT_CNT = 50000
@@ -24,8 +26,8 @@ LOCAL_LOG_FILE = "/tmp/main.log"
 kioxia_exist = False
 tmp_exist = False
 
-RELAY1 = 29
-RELAY2 = 31
+#RELAY1 = 29
+#RELAY2 = 31
 
 def send_alert(class_name, conf):
     send_push_with_cooldown(
@@ -92,19 +94,19 @@ def unmount_sdcard():
 
 
 def every_hour_check():
-    global GPIO
     now = datetime.now()
     print("hour changed:", now)
-    if now.hour % 2 == 0:
-        GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
-    else:
-        GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
+    return
+    #if now.hour % 2 == 0:
+    #    GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
+    #else:
+    #    GPIO.output(RELAY1, GPIO.HIGH)   # relay 1 ON
 
 
 #main
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(RELAY1, GPIO.OUT, initial=GPIO.HIGH) # relay 1 always ON
-GPIO.setup(RELAY2, GPIO.OUT, initial=GPIO.LOW)
+#GPIO.setmode(GPIO.BOARD)
+#GPIO.setup(RELAY1, GPIO.OUT, initial=GPIO.HIGH) # relay 1 always ON
+#GPIO.setup(RELAY2, GPIO.OUT, initial=GPIO.LOW)
 
 os.makedirs("frames", exist_ok=True)
 
@@ -161,6 +163,7 @@ while True:
         print(class_name, confidence)
         if confidence > 0.4:
             send_alert(class_name, confidence)
+            start_gpio_blink()
 
         if confidence > 0.4:
             save_frame = True
