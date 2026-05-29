@@ -5,7 +5,7 @@
 //  Created by Toru Ishihara on 2026/05/29.
 //
 
-
+/*
 import SwiftUI
 
 struct ContentView: View {
@@ -40,3 +40,4 @@ struct ContentView: View {
         .padding()
     }
 }
+*/

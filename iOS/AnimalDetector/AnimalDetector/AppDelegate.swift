@@ -66,8 +66,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let content = notification.request.content
 
         DispatchQueue.main.async {
-            NotificationModel.shared.title = content.title
-            NotificationModel.shared.body = content.body
+            NotificationModel.shared.addNotification(
+                title: content.title,
+                body: content.body
+            )
         }
 
         completionHandler([.banner, .sound, .badge])
