@@ -10,11 +10,13 @@ import SwiftUI
 @main
 struct AnimalDetectorApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    @StateObject private var notificationModel = NotificationModel.shared
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(NotificationModel.shared)
+            MainTabView()
+                .environmentObject(notificationModel)
         }
     }
 }

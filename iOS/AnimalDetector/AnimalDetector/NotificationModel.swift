@@ -15,4 +15,6 @@ class NotificationModel: ObservableObject {
     @Published var title: String = "No notification yet"
     @Published var body: String = ""
     @Published var fcmToken: String = ""
+    
+    private init() {}
 }

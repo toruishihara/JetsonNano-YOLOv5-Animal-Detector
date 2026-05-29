@@ -12,14 +12,12 @@ import FirebaseMessaging
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
-
+    
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-
         FirebaseApp.configure()
-
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
 
@@ -30,9 +28,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 print("permission error:", error)
             }
         }
-
         application.registerForRemoteNotifications()
-
+ 
         return true
     }
 
