@@ -4,9 +4,12 @@ import time
 import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
+from datetime import datetime, timezone
+
 
 SERVICE_ACCOUNT = "/home/toru/wild-animal-detection-a6fb5-firebase-adminsdk-fbsvc-8ec0758f8e.json"
 PROJECT_ID = "wild-animal-detection-a6fb5"
+FIREBASE_DB_URL = "https://wild-animal-detection-a6fb5-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 FCM_TOKEN = "d9BgbfF80kyhmjABifIY91:APA91bFHQUtsW_20fgA-RaTylCL_7wBJ8kO8FtKgAy5wsmO9MeWGpX-jk0ZPwVj1FDXSrPB7Di-S-6JW--b2Im6vYUnwL17yNR3swNL2YSUZ9cZJzb-9gPM"
 
@@ -57,6 +60,8 @@ def send_push(title, body, data=None):
     for k, v in data.items():
         string_data[str(k)] = str(v)
 
+    string_data["time"] = datetime.now(timezone.utc).isoformat()
+
     payload = {
         "message": {
             "token": FCM_TOKEN,
@@ -65,7 +70,7 @@ def send_push(title, body, data=None):
                 "body": body
             },
             "data": string_data
-        }
+        },
     }
 
     try:
@@ -82,19 +87,43 @@ def send_push(title, body, data=None):
 
 def send_push_with_cooldown(title, body, data=None, cooldown_sec=60):
     global _last_push_time
-
     now = time.time()
-
     if now - _last_push_time < cooldown_sec:
         print("FCM skipped by cooldown", flush=True)
         return False
 
     ok = send_push(title, body, data)
-
     if ok:
         _last_push_time = now
-
+    ok = save_alert_to_database(title, body, data)
     return ok
+
+def save_alert_to_database(title, body, data=None):
+    if data is None:
+        data = {}
+
+    alert = {
+        "title": title,
+        "message": body,
+        "time": datetime.now(timezone.utc).isoformat(),
+        "device": "jetson-nano"
+    }
+
+    for k, v in data.items():
+        alert[str(k)] = str(v)
+
+    url = FIREBASE_DB_URL + "/alerts.json"
+
+    try:
+        resp = requests.post(url, json=alert, timeout=10)
+        print("RTDB status:", resp.status_code, flush=True)
+        print("RTDB response:", resp.text, flush=True)
+        return resp.status_code == 200
+
+    except Exception as e:
+        print("RTDB save error:", e, flush=True)
+        return False
+
 
 #if __name__ == "__main__":
 #    send_push("Animal Detector", "Test push from notify.py", {

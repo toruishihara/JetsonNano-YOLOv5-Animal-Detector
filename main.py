@@ -32,10 +32,8 @@ def send_alert(class_name, conf):
         "Animal Detector",
         "Animal detected: {}".format(class_name),
         {
-            "type": "animal_alert",
             "class": class_name,
-            "confidence": "{:.2f}".format(conf),
-            "source": "jetson"
+            "confidence": "{:.2f}".format(conf)
         },
         cooldown_sec=60
     )
