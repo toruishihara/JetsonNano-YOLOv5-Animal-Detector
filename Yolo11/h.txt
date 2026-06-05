@@ -1,0 +1,6 @@
+sudo docker run -it --rm   --runtime nvidia   --network host   --privileged   -v /tmp/argus_socket:/tmp/argus_socket   -v ~/yolo_test:/workspace/yolo_test   ultralytics/ultralytics:latest-jetson-jetpack6
+
+Console with #
+cd /workspace/yolo_test:wq
+cd JetsonNano-YOLOv5-Animal-Detector/Yolo11/
+python3 camera_yolo11n_pipe.py --no-display --save --output camera_result.mp4
