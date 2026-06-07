@@ -21,6 +21,7 @@ CAMERA_FPS = 15
 
 YOLO_IMGSZ = 320
 CONF_THRES = 0.50
+ANIMAL_THRES = 0.20
 
 SAVE_DIR = Path("/usb/frames")
 
@@ -32,6 +33,16 @@ IGNORE_LIST = {
     "bus",
     "motorcycle",
     "bicycle",
+}
+
+ANIMAL_LIST = {
+    "dog",
+    "cat",
+    "bear",
+    "cow",
+    "horse",
+    "sheep",
+    "bird",
 }
 
 # Save cooldown seconds.
@@ -117,12 +128,21 @@ def main():
             result = results[0]
 
             detected_items = []
+            animal_detected_items = []
 
             if result.boxes is not None:
                 for box in result.boxes:
                     cls_id = int(box.cls[0])
                     conf = float(box.conf[0])
                     class_name = names[cls_id]
+                    
+                    # 1. Animal priority check
+                    # Animals can pass with lower confidence, e.g. 0.30
+                    if class_name in ANIMAL_LIST:
+                        if conf >= ANIMAL_CONF:
+                            animal_detected_items.append((class_name, conf))
+                            detected_items.append((class_name, conf))
+                        continue
 
                     if conf < CONF_THRES:
                         continue
