@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 import time
 from pathlib import Path
+from notify import send_push_with_cooldown
+from blink import start_gpio_blink
 
 
 # -----------------------------
@@ -140,6 +142,13 @@ def main():
 
                 label_text = "Detected: " + ", ".join(
                     [f"{name} {conf:.2f}" for name, conf in detected_items]
+                )
+
+                start_gpio_blink()
+                send_push_with_cooldown(
+                    "Object",
+                    label_text,
+                    cooldown_sec=60
                 )
 
                 cv2.putText(

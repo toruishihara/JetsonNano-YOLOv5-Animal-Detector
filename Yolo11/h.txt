@@ -1,4 +1,5 @@
-sudo docker run -it --runtime nvidia   --network host   --privileged   -v /tmp/argus_socket:/tmp/argus_socket   -v ~/yolo_test:/workspace/yolo_test -v /mnt/usbmem0:/usb   ultralytics/ultralytics:latest-jetson-jetpack6
+sudo docker run -it --runtime nvidia --network host --privileged -v /tmp/argus_socket:/tmp/argus_socket -v ~/yolo_test:/workspace/yolo_test -v /mnt/usbmem0:/usb yolo11n-my
+#sudo docker run -it --runtime nvidia   --network host   --privileged   -v /tmp/argus_socket:/tmp/argus_socket   -v ~/yolo_test:/workspace/yolo_test -v /mnt/usbmem0:/usb   ultralytics/ultralytics:latest-jetson-jetpack6
 
 Console with #
 cd /workspace/yolo_test:wq
